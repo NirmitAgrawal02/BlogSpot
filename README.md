@@ -1,2 +1,2 @@
 # BlogSpot
-Creating a centralised system to read all the tech blogs.
+Creating a centralised space to read all the tech blogs.
