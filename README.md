@@ -44,7 +44,8 @@ The front end will call `/api/blogs` on the same host; if you run the backend on
 
 ### Development Notes
 
-- To add additional tech blog sources, edit the backend code (`backend/app.py` for Python or `backend/server.js` for Node) and add entries to the `sources` array.
+- To add additional tech blog sources, edit the backend code (`backend/app.py` for Python or `backend/server.js` for Node) and add entries to the `sources` array. You can also supply a corresponding logo image by placing a file named after the source (lowercase, no spaces) in `frontend/public/logos` (e.g. `uber.png`).
+- Scraped posts are automatically categorized by keyword (backend, research, AI/data‑ML, mobile, security, or web). The front end displays these categories as badges on each card.
 - The scraping logic is intentionally simple; you may need to tailor selectors for each site.
 
 ### Web search

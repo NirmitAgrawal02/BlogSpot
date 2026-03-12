@@ -36,22 +36,55 @@ export default function BlogList() {
   if (loading) return <p>Loading blog posts…</p>;
   if (error) return <p className="error">Failed to load: {error}</p>;
 
+  interface PostCard {
+    source: string;
+    href: string;
+    title: string;
+    image?: string;
+    categories?: string[];
+  }
+
+  // flatten all posts across sources into one list of cards
+  const cards: PostCard[] = [];
+  sources.forEach((s) => {
+    (s.posts || []).forEach((p: any) => {
+      cards.push({
+        source: s.source,
+        href: p.href,
+        title: p.title,
+        image: p.image,
+        categories: p.categories,
+      });
+    });
+  });
+
   return (
     <div className="blog-list">
-      {sources.map((s) => (
-        <section key={s.source}>
-          <h2>{s.source}</h2>
-          <ul>
-            {s.posts.map((p, i) => (
-              <li key={i}>
-                <a href={p.href} target="_blank" rel="noopener noreferrer">
-                  {p.title}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+      <div className="cards">
+        {cards.map((c, idx) => (
+          <div key={idx} className="blog-card">
+            {c.image && (
+              <div
+                className="card-image"
+                style={{ backgroundImage: `url(${c.image})` }}
+              />
+            )}
+            <h3>{c.source}</h3>
+            {c.categories && (
+              <div className="categories">
+                {c.categories.map((cat, i) => (
+                  <span key={i} className="category-badge">
+                    {cat}
+                  </span>
+                ))}
+              </div>
+            )}
+            <a href={c.href} target="_blank" rel="noopener noreferrer">
+              {c.title}
+            </a>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -55,6 +55,103 @@ body {
   text-align: left;
 }
 
+/* card layout for most recent posts */
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin: 1rem auto;
+  max-width: 900px;
+}
+
+.blog-card {
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255,255,255,0.9);
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  text-align: left;
+  overflow: hidden;
+}
+
+.card-image {
+  width: 100%;
+  height: 120px;
+  background-size: cover;
+  background-position: center;
+}
+
+.blog-card h3 {
+  margin: 0.5rem 0 0.25rem 0;
+  font-size: 0.9rem;
+  padding: 0 0.5rem;
+}
+
+.blog-card a {
+  display: block;
+  margin: 0 0 0.75rem 0;
+  padding: 0 0.5rem;
+  font-size: 0.9rem;
+  color: #007acc;
+  text-decoration: none;
+}
+
+.categories {
+  padding: 0 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.category-badge {
+  display: inline-block;
+  background: #e0e0e0;
+  color: #333;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  margin-right: 4px;
+}
+
+.blog-card a:hover {
+  text-decoration: underline;
+}
+
+.blog-card h3 {
+  margin: 0.25rem 0;
+  font-size: 1rem;
+}
+
+.blog-card a {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #007acc;
+  text-decoration: none;
+}
+
+.blog-card a:hover {
+  text-decoration: underline;
+}
+
+/* keep older list styles in case you later want them */
+.blog-source {
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+}
+
+.source-logo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  margin-right: 1rem;
+}
+
+.post-item a {
+  font-weight: normal;
+}
+
 /* search area */
 .search {
   max-width: 800px;

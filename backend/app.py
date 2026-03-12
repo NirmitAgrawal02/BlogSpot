@@ -6,10 +6,29 @@ import os
 app = Flask(__name__)
 
 sources = [
-    {"name": "Uber Engineering", "url": "https://eng.uber.com/"},
+    {"name": "Uber Engineering", "url": "https://www.uber.com/en-SE/blog/engineering/"},
     {"name": "Netflix Tech Blog", "url": "https://netflixtechblog.com/"},
     {"name": "LinkedIn Engineering", "url": "https://engineering.linkedin.com/blog"},
 ]
+
+
+
+
+def _fetch_image_for_url(url, headers):
+    """Return a candidate image URL for the given page by looking at og:image or first img."""
+    try:
+        r = requests.get(url, headers=headers, timeout=5)
+        r.raise_for_status()
+        s = BeautifulSoup(r.text[:50000], 'html.parser')  # limit parse size
+        og = s.find('meta', property='og:image')
+        if og and og.get('content'):
+            return og['content']
+        img = s.find('img')
+        if img and img.get('src'):
+            return img['src']
+    except Exception:
+        pass
+    return None
 
 
 def scrape_source(source):
@@ -32,7 +51,29 @@ def scrape_source(source):
             if title and href:
                 if not href.startswith('http'):
                     href = source['url'].rstrip('/') + '/' + href.lstrip('/')
-                links.append({'title': title, 'href': href})
+                # determine categories from title/url
+                cat_text = (title + ' ' + href).lower()
+                cats = []
+                if 'backend' in cat_text:
+                    cats.append('Backend')
+                if 'research' in cat_text:
+                    cats.append('Research')
+                if 'ai' in cat_text or 'machine learning' in cat_text or 'ml' in cat_text:
+                    cats.append('AI / Data/ML')
+                if 'data' in cat_text and 'ml' not in cat_text:
+                    cats.append('Data')
+                if 'mobile' in cat_text or 'android' in cat_text or 'ios' in cat_text:
+                    cats.append('Mobile')
+                if 'security' in cat_text or 'secure' in cat_text:
+                    cats.append('Security')
+                if not cats:
+                    cats.append('Web')
+                links.append({'title': title, 'href': href, 'categories': cats})
+        # attempt to enrich each link with a featured image
+        for post in links:
+            img = _fetch_image_for_url(post['href'], headers)
+            if img:
+                post['image'] = img
         return {'source': source['name'], 'posts': links}
     except requests.exceptions.SSLError as ssl_err:
         # retry once ignoring certificate problems
@@ -65,24 +106,27 @@ def log_request_info():
 
 @app.route('/api/blogs')
 def blogs():
-    # build results one source at a time to avoid a single failure crashing
+    # accept additional comma‑separated URLs via the "extra" query parameter
+    extras = []
+    extra_param = request.args.get('extra')
+    if extra_param:
+        for url in extra_param.split(','):
+            url = url.strip()
+            if url:
+                extras.append({'name': url, 'url': url})
+    all_sources = sources + extras
+
     results = []
-    for s in sources:
+    for s in all_sources:
         try:
             results.append(scrape_source(s))
         except Exception as source_err:
-            # this should never happen since scrape_source handles exceptions,
-            # but we include a fallback just in case
             app.logger.error('scrape_source crashed for %s: %s', s.get('name'), source_err, exc_info=True)
             results.append({'source': s.get('name', '<unknown>'), 'posts': [], 'error': str(source_err)})
-    # if any internal error occurred earlier it would have been caught above;
-    # we still guard the jsonify call just in case.
     try:
         return jsonify(results)
     except Exception as e:
-
         app.logger.error('jsonify failed in /api/blogs: %s', e, exc_info=True)
-        # return whatever we can; show debug info to aid diagnosis
         return jsonify({'error': 'json serialization failure', 'detail': str(e)}), 500
 
 
