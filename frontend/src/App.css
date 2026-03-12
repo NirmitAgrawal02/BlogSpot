@@ -1,3 +1,10 @@
+/* full‑page background image */
+body {
+  margin: 0;
+  padding: 0;
+  background-size: cover;
+}
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -100,4 +107,38 @@
 
 .blog-list a:hover {
   text-decoration: underline;
+}
+
+/* header/navbar styling */
+header {
+  background: #282c34;
+  color: white;
+  padding: 0.5rem 1rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+main {
+  /* push content below the fixed header */
+  padding-top: 60px;
+}
+
+.navbar h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: white;
+}
+
+/* adjust search input width in navbar */
+.search input {
+  width: 200px;
 }

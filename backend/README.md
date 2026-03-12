@@ -26,9 +26,28 @@ The Flask app listens on port 4000 by default. Set the `PORT` env var to change 
 
 ### Endpoints
 
-- `GET /api/blogs` — returns scraped links from a handful of sources.
+- `GET /` — simple health/landing route. Returns a JSON message so visiting the
+  base URL does not produce a confusing "Not Found" page.
+- `GET /api/blogs` — returns scraped links from a handful of sources. An array of
+  objects with `source` and `posts` is returned; if a particular source fails the
+  object may also contain an `error` string describing the problem. Backend errors
+  are logged to the console. A failure to scrape one site does not cause a 500
+  response; only unexpected exceptions propagate as status 500.
 - `GET /api/search?q=term` — uses Bing Web Search API to look for blogs/tech
-  posts across the web; requires `BING_API_KEY`.
+  posts across the web; requires `BING_API_KEY`. Errors from the search
+  provider are also returned as JSON.
+
+All undefined routes now return a JSON 404 response instead of HTML.
+
+### Scraping caveats
+
+- Some blogs reject non‑browser user agents (Uber returned 406). We now set a
+  common Chrome UA string to work around that.
+- SSL certificate verification may fail (Netflix). The scraper will retry once
+  with `verify=False` and log a warning; you can install proper CA bundles if you
+  prefer not to bypass verification.
+- If scraping still fails, the `posts` array will be empty and an `error` field
+  will describe the failure.
 
 ### Extending sources
 

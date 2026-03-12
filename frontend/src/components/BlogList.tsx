@@ -16,9 +16,14 @@ export default function BlogList() {
   const [error, setError] = useState<string>();
 
   useEffect(() => {
-    fetch('/api/blogs')
+    const url = '/api/blogs';
+    fetch(url)
       .then((r) => {
-        if (!r.ok) throw new Error(`status ${r.status}`);
+        if (!r.ok) {
+          return r.text().then((text) => {
+            throw new Error(`${url} returned ${r.status}${text ? ` - ${text}` : ''}`);
+          });
+        }
         return r.json();
       })
       .then((data: BlogSource[]) => {

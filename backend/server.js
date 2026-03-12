@@ -39,8 +39,22 @@ async function scrapeSource(source) {
 }
 
 app.get('/api/blogs', async (req, res) => {
-  const results = await Promise.all(sources.map(scrapeSource));
-  res.json(results);
+  try {
+    const results = await Promise.all(sources.map(scrapeSource));
+    res.json(results);
+  } catch (err) {
+    console.error('unexpected /api/blogs error', err);
+    res.status(500).json({ error: 'internal server error' });
+  }
+});
+
+app.get('/', (req, res) => {
+  res.json({ message: 'BlogSpot backend running. Use /api/blogs' });
+});
+
+// catch-all for undefined routes
+app.use((req, res) => {
+  res.status(404).json({ error: 'not found', path: req.originalUrl });
 });
 
 const PORT = process.env.PORT || 4000;

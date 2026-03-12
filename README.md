@@ -35,7 +35,12 @@ npm install    # sets up React/Vite dependencies
 npm run dev    # starts development server (http://localhost:5173)
 ```
 
-The front end will call `/api/blogs` on the same host; if you run the backend on a different port adjust the `proxy` setting in `vite.config.ts` or use env variables.
+The front end will call `/api/blogs` on the same host; if you run the backend on a different port adjust the `proxy` setting in `vite.config.ts` or use env variables.  
+
+> ⚠️ On Windows the `localhost` name can resolve to an IPv6 address (`::1`) while the
+> Flask server listens only on IPv4. If you see `ECONNREFUSED ::1:4000` in the Vite
+> console, change the proxy `target` to `http://127.0.0.1:4000` (this repo already does
+> that) or start Flask with `host='::'` so it accepts IPv6 connections.
 
 ### Development Notes
 

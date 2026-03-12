@@ -5,11 +5,11 @@ import Search from './components/Search';
 function App() {
   return (
     <div className="App">
-      <header>
-        <h1>BlogSpot: Tech Blog Aggregator</h1>
+      <header className="navbar">
+        <h1>BlogSpot</h1>
+        <Search />
       </header>
       <main>
-        <Search />
         <BlogList />
       </main>
     </div>
