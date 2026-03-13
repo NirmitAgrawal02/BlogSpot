@@ -1,88 +1,49 @@
-import { useEffect, useState } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
 
-export interface BlogPost {
-  title: string;
-  href: string;
-}
+export default function BlogList({ sources }: { sources: BlogSource[] }) {
+  const { company } = useParams<{ company: string }>();
+  const location = useLocation();
+  const specFilter = new URLSearchParams(location.search).get('spec');
 
-export interface BlogSource {
-  source: string;
-  posts: BlogPost[];
-}
+  const filteredCards: any[] = [];
 
-export default function BlogList({ sources: initialSources }: { sources?: BlogSource[] }) {
-  const [sources, setSources] = useState<BlogSource[]>(initialSources || []);
-  const [loading, setLoading] = useState(!initialSources);
-  const [error, setError] = useState<string>();
-
-  useEffect(() => {
-    if (initialSources) return; // data provided by caller
-    const url = '/api/blogs';
-    fetch(url)
-      .then((r) => {
-        if (!r.ok) {
-          return r.text().then((text) => {
-            throw new Error(`${url} returned ${r.status}${text ? ` - ${text}` : ''}`);
-          });
-        }
-        return r.json();
-      })
-      .then((data: BlogSource[]) => {
-        setSources(data);
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [initialSources]);
-
-  if (loading) return <p>Loading blog posts…</p>;
-  if (error) return <p className="error">Failed to load: {error}</p>;
-
-  interface PostCard {
-    source: string;
-    href: string;
-    title: string;
-    image?: string;
-    categories?: string[];
-  }
-
-  // flatten all posts across sources into one list of cards
-  const cards: PostCard[] = [];
   sources.forEach((s) => {
+    // FIX: Only process the specific company if the URL param exists
+    if (company && encodeURIComponent(s.source) !== company) return;
+
     (s.posts || []).forEach((p: any) => {
-      cards.push({
+      // FIX: Further filter by specialization if selected
+      if (specFilter && !p.categories?.includes(specFilter)) return;
+
+      filteredCards.push({
         source: s.source,
-        href: p.href,
-        title: p.title,
-        image: p.image,
-        categories: p.categories,
+        ...p,
       });
     });
   });
 
+  if (sources.length === 0) return <div className="loading">Fetching the latest tech blogs...</div>;
+  if (filteredCards.length === 0) return <div className="empty">No articles found matching your criteria.</div>;
+
   return (
     <div className="blog-list">
       <div className="cards">
-        {cards.map((c, idx) => (
+        {filteredCards.map((c, idx) => (
           <div key={idx} className="blog-card">
-            {c.image && (
-              <div
-                className="card-image"
-                style={{ backgroundImage: `url(${c.image})` }}
-              />
-            )}
-            <h3>{c.source}</h3>
-            {c.categories && (
+            {/* Display the featured image found by the scraper */}
+            <div 
+              className="card-image" 
+              style={{ backgroundImage: `url(${c.image || '/fallback-blog-image.jpg'})` }} 
+            />
+            <div className="card-content">
+              <h3>{c.source}</h3>
               <div className="categories">
-                {c.categories.map((cat, i) => (
-                  <span key={i} className="category-badge">
-                    {cat}
-                  </span>
+                {c.categories?.map((cat: string) => (
+                  <span key={cat} className="category-badge">{cat}</span>
                 ))}
               </div>
-            )}
-            <a href={c.href} target="_blank" rel="noopener noreferrer">
-              {c.title}
-            </a>
+              <a href={c.href} target="_blank" rel="noopener noreferrer">{c.title}</a>
+            </div>
           </div>
         ))}
       </div>

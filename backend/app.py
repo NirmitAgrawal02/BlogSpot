@@ -60,74 +60,56 @@ def _fetch_image_for_url(url, headers):
         pass
     return None
 
-
 def scrape_source(source):
     headers = {
-        # mimic a normal browser to avoid 406/403
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                      'AppleWebKit/537.36 (KHTML, like Gecko) '
-                      'Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     }
 
     try:
-        r = requests.get(source['url'], headers=headers, timeout=10)
+        # Use a longer timeout for more reliable scraping
+        r = requests.get(source['url'], headers=headers, timeout=15)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, 'html.parser')
         links = []
-        for a in soup.find_all('a', href=True)[:10]:
-            title = a.get_text(strip=True)
-            href = a['href']
-            if title and href:
+
+        # FIX: Target header tags which usually contain the real blog titles
+        for tag in soup.find_all(['h2', 'h3', 'h1']):
+            a = tag.find('a', href=True) or tag.find_parent('a', href=True)
+            
+            if a:
+                title = a.get_text(strip=True) or tag.get_text(strip=True)
+                # Ignore junk navigation links
+                if not title or len(title) < 10 or "skip to" in title.lower():
+                    continue
+                
+                href = a['href']
                 if not href.startswith('http'):
                     href = source['url'].rstrip('/') + '/' + href.lstrip('/')
-                # determine categories from title/url
+                
+                # Categorization logic
                 cat_text = (title + ' ' + href).lower()
                 cats = []
-                if 'backend' in cat_text:
-                    cats.append('Backend')
-                if 'research' in cat_text:
-                    cats.append('Research')
-                if 'ai' in cat_text or 'machine learning' in cat_text or 'ml' in cat_text:
-                    cats.append('AI / Data/ML')
-                if 'data' in cat_text and 'ml' not in cat_text:
-                    cats.append('Data')
-                if 'mobile' in cat_text or 'android' in cat_text or 'ios' in cat_text:
-                    cats.append('Mobile')
-                if 'security' in cat_text or 'secure' in cat_text:
-                    cats.append('Security')
-                if not cats:
-                    cats.append('Web')
-                links.append({'title': title, 'href': href, 'categories': cats})
-        # attempt to enrich each link with a featured image
-        for post in links:
-            img = _fetch_image_for_url(post['href'], headers)
-            if img:
-                post['image'] = img
-        return {'source': source['name'], 'posts': links}
-    except requests.exceptions.SSLError as ssl_err:
-        # retry once ignoring certificate problems
-        app.logger.warning('ssl error %s, retrying without verify', source['name'])
-        try:
-            r = requests.get(source['url'], headers=headers, timeout=10, verify=False)
-            r.raise_for_status()
-            soup = BeautifulSoup(r.text, 'html.parser')
-            links = []
-            for a in soup.find_all('a', href=True)[:10]:
-                title = a.get_text(strip=True)
-                href = a['href']
-                if title and href:
-                    if not href.startswith('http'):
-                        href = source['url'].rstrip('/') + '/' + href.lstrip('/')
-                    links.append({'title': title, 'href': href})
-            return {'source': source['name'], 'posts': links}
-        except Exception as e2:
-            app.logger.warning('scrape error %s %s', source['name'], e2, exc_info=True)
-            return {'source': source['name'], 'posts': [], 'error': str(e2)}
-    except Exception as e:
-        app.logger.warning('scrape error %s %s', source['name'], e, exc_info=True)
-        return {'source': source['name'], 'posts': [], 'error': str(e)}
+                if 'backend' in cat_text: cats.append('Backend')
+                if 'data' in cat_text: cats.append('Data')
+                if any(x in cat_text for x in ['ai', 'ml', 'machine learning']): cats.append('AI / Data/ML')
+                if 'research' in cat_text: cats.append('Research')
+                if any(x in cat_text for x in ['mobile', 'android', 'ios']): cats.append('Mobile')
+                if 'security' in cat_text: cats.append('Security')
+                if not cats: cats.append('Web')
 
+                links.append({'title': title, 'href': href, 'categories': cats})
+
+            if len(links) >= 10: break
+
+        # Enrich with images from the article metadata
+        for post in links:
+            post['image'] = _fetch_image_for_url(post['href'], headers)
+
+        return {'source': source['name'], 'posts': links}
+    except Exception as e:
+        app.logger.warning(f"Error scraping {source['name']}: {e}")
+        return {'source': source['name'], 'posts': [], 'error': str(e)}
 
 @app.before_request
 def log_request_info():

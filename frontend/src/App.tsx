@@ -2,18 +2,33 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import BlogList from './components/BlogList';
 import Search from './components/Search';
-import { BrowserRouter, Routes, Route, Link, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 
-// page that shows blogs filtered by company name param
-function CompanyPage({allSources}: {allSources: any[]}) {
-  const { company } = useParams<{company: string}>();
-  const source = allSources.find(s => encodeURIComponent(s.source) === company);
-  if (!source) return <p>Company not found.</p>;
-  const label = source.source.split(' ')[0];
+// New Filter Component for Specializations
+function FilterBar() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const specializations = ['Backend', 'Data', 'AI / Data/ML', 'Research', 'Mobile', 'Security', 'Web'];
+
+  const handleFilter = (spec: string) => {
+    const params = new URLSearchParams(location.search);
+    params.set('spec', spec);
+    // Maintain the current path (root or company) while adding the search filter
+    navigate({ pathname: location.pathname, search: params.toString() });
+  };
+
+  const clearFilters = () => {
+    navigate(location.pathname);
+  };
+
   return (
-    <div className="company-page">
-      <h2>{label}</h2>
-      <BlogList sources={[source]} />
+    <div className="filter-bar">
+      {specializations.map(spec => (
+        <button key={spec} className="filter-btn" onClick={() => handleFilter(spec)}>
+          {spec}
+        </button>
+      ))}
+      <button className="filter-btn clear" onClick={clearFilters}>Clear Specialization</button>
     </div>
   );
 }
@@ -21,23 +36,12 @@ function CompanyPage({allSources}: {allSources: any[]}) {
 function App() {
   const [sources, setSources] = useState<any[]>([]);
 
-  // fetch once on mount and store sources for dropdown / filtering
   useEffect(() => {
     fetch('/api/blogs')
       .then(r => r.ok ? r.json() : Promise.reject('fetch failed'))
       .then((data) => setSources(data))
       .catch(console.error);
   }, []);
-
-  // show all companies even if scraping produced zero posts
-  const companyItems = sources.map(s => {
-    const label = s.source.split(' ')[0];
-    return (
-      <li key={s.source} className="company-item">
-        <Link to={`/company/${encodeURIComponent(s.source)}`}>{label}</Link>
-      </li>
-    );
-  });
 
   return (
     <BrowserRouter>
@@ -48,14 +52,19 @@ function App() {
           <nav className="company-nav">
             <button className="company-button">Companies ▾</button>
             <ul className="company-dropdown">
-              {companyItems}
+              {sources.map(s => (
+                <li key={s.source} className="company-item">
+                  <Link to={`/company/${encodeURIComponent(s.source)}`}>{s.source.split(' ')[0]}</Link>
+                </li>
+              ))}
             </ul>
           </nav>
         </header>
         <main>
+          <FilterBar />
           <Routes>
-            <Route path="/" element={<BlogList />} />
-            <Route path="/company/:company" element={<CompanyPage allSources={sources} />} />
+            <Route path="/" element={<BlogList sources={sources} />} />
+            <Route path="/company/:company" element={<BlogList sources={sources} />} />
           </Routes>
         </main>
       </div>
@@ -63,4 +72,4 @@ function App() {
   );
 }
 
-export default App
+export default App;
