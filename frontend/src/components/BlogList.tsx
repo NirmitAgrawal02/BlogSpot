@@ -10,12 +10,13 @@ export interface BlogSource {
   posts: BlogPost[];
 }
 
-export default function BlogList() {
-  const [sources, setSources] = useState<BlogSource[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function BlogList({ sources: initialSources }: { sources?: BlogSource[] }) {
+  const [sources, setSources] = useState<BlogSource[]>(initialSources || []);
+  const [loading, setLoading] = useState(!initialSources);
   const [error, setError] = useState<string>();
 
   useEffect(() => {
+    if (initialSources) return; // data provided by caller
     const url = '/api/blogs';
     fetch(url)
       .then((r) => {
@@ -31,7 +32,7 @@ export default function BlogList() {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [initialSources]);
 
   if (loading) return <p>Loading blog posts…</p>;
   if (error) return <p className="error">Failed to load: {error}</p>;
