@@ -59,56 +59,49 @@ def _fetch_image_for_url(url, headers):
     except Exception:
         pass
     return None
-
 def scrape_source(source):
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     }
-
     try:
-        # Use a longer timeout for more reliable scraping
         r = requests.get(source['url'], headers=headers, timeout=15)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, 'html.parser')
         links = []
-
-        # FIX: Target header tags which usually contain the real blog titles
-        for tag in soup.find_all(['h2', 'h3', 'h1']):
+        
+        # FIX: Look for headers (h1-h3) to avoid "Skip to content" navigation junk
+        for tag in soup.find_all(['h1', 'h2', 'h3']):
             a = tag.find('a', href=True) or tag.find_parent('a', href=True)
-            
             if a:
-                title = a.get_text(strip=True) or tag.get_text(strip=True)
-                # Ignore junk navigation links
-                if not title or len(title) < 10 or "skip to" in title.lower():
+                title = a.get_text(strip=True)
+                # Filter out short or navigation-heavy titles
+                if not title or len(title) < 12 or "skip" in title.lower():
                     continue
                 
                 href = a['href']
                 if not href.startswith('http'):
                     href = source['url'].rstrip('/') + '/' + href.lstrip('/')
                 
-                # Categorization logic
+                # Fetch the blog image using your existing helper
+                img = _fetch_image_for_url(href, headers)
+                
+                # Categorization logic (Backend, AI, etc.)
                 cat_text = (title + ' ' + href).lower()
                 cats = []
                 if 'backend' in cat_text: cats.append('Backend')
-                if 'data' in cat_text: cats.append('Data')
-                if any(x in cat_text for x in ['ai', 'ml', 'machine learning']): cats.append('AI / Data/ML')
-                if 'research' in cat_text: cats.append('Research')
-                if any(x in cat_text for x in ['mobile', 'android', 'ios']): cats.append('Mobile')
-                if 'security' in cat_text: cats.append('Security')
-                if not cats: cats.append('Web')
+                elif any(x in cat_text for x in ['ai', 'ml', 'machine']): cats.append('AI / Data/ML')
+                elif 'data' in cat_text: cats.append('Data')
+                elif 'research' in cat_text: cats.append('Research')
+                elif any(x in cat_text for x in ['mobile', 'android', 'ios']): cats.append('Mobile')
+                elif 'security' in cat_text: cats.append('Security')
+                else: cats.append('Web')
 
-                links.append({'title': title, 'href': href, 'categories': cats})
-
+                links.append({'title': title, 'href': href, 'image': img, 'categories': cats})
+            
             if len(links) >= 10: break
-
-        # Enrich with images from the article metadata
-        for post in links:
-            post['image'] = _fetch_image_for_url(post['href'], headers)
 
         return {'source': source['name'], 'posts': links}
     except Exception as e:
-        app.logger.warning(f"Error scraping {source['name']}: {e}")
         return {'source': source['name'], 'posts': [], 'error': str(e)}
 
 @app.before_request
